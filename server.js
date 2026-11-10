@@ -11,9 +11,9 @@ app.use(express.json());
 
 // Connect to MongoDB (change the connection string as needed)
 mongoose
-  .connect("mongodb://localhost:27017/taskmanager", {})
-  .then(() =>console.log("MongoDB connected"))
-  .catch((err) =>console.log("MongoDB connection error:", err));
+  .connect(process.env.MONGO_URI)
+  .then(() =>console.log("MongoDB Atlas connected"))
+  .catch(err =>console.log("MongoDB connection error:", err));
 
 // Task Schema
 const TaskSchema = new mongoose.Schema(
@@ -109,6 +109,6 @@ app.delete("/tasks/:id", async (req, res) => {
 // Connect to MongoDB and start server
 const PORT = process.env.PORT || 5000;
 
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
+    app.listen(PORT,"0.0.0.0", () => {
+      console.log("Server running on port" +PORT);
     });
