@@ -1,4 +1,4 @@
-
+require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -9,11 +9,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Connect to MongoDB (change the connection string as needed)
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() =>console.log("MongoDB Atlas connected"))
-  .catch(err =>console.log("MongoDB connection error:", err));
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB connected"))
+  .catch((err) => console.log("MongoDB connection error:", err));// Connect to MongoDB (change the connection string as needed)
 
 // Task Schema
 const TaskSchema = new mongoose.Schema(
