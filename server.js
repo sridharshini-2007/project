@@ -109,6 +109,9 @@ app.delete("/tasks/:id", async (req, res) => {
 // Connect to MongoDB and start server
 const PORT = process.env.PORT || 5000;
 
+app.get("/", (req, res) => {
+  res.send("Task Management API is running!");
+});
     app.listen(PORT,"0.0.0.0", () => {
       console.log("Server running on port" +PORT);
     });
