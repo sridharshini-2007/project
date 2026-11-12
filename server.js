@@ -1,17 +1,57 @@
+
 require("dotenv").config();
+
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 
 const app = express();
 
+// CORS configuration
+const clientUrl = process.env.CLIENT_URL;
+
+const allowedOrigins = clientUrl
+  ? clientUrl.split(",").map((url) => url.trim().replace(/\/+$/, ""))
+  : [];
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+
+    const normalizedOrigin = origin.replace(/\/+$/, "");
+
+    const isAllowed =
+      allowedOrigins.includes(normalizedOrigin) ||
+      /^https?:\/\/localhost(:\d+)?$/.test(origin) ||
+      /^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(origin) ||
+      normalizedOrigin.endsWith(".vercel.app");
+
+    if (isAllowed) {
+      return callback(null, true);
+    }
+
+    console.warn(`Blocked by CORS: ${origin}`);
+    return callback(new Error("Not allowed by CORS"));
+  },
+  methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true
+};
+
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB connected"))
-  .catch((err) => console.log("MongoDB connection error:", err));// Connect to MongoDB (change the connection string as needed)
+// Root health check
+app.get("/", (req, res) => {
+  res.json({ message: "Task Management API is running" });
+});
+
+// MongoDB connection
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB connected successfully"))
+  .catch((err) => console.error("MongoDB connection error:", err));
 
 // Task Schema
 const TaskSchema = new mongoose.Schema(
@@ -44,40 +84,40 @@ app.get("/tasks", async (req, res) => {
 
 // Create a new task
 app.post("/tasks", async (req, res) => {
-    const { title } = req.body;
-    const task = new Task({ title});
-    try{
-    const Task=await task.save();
-    res.status(201).json(new Task);
+  const { title } = req.body;
+
+  try {
+    const task = new Task({ title });
+    const savedTask = await task.save();
+    res.status(201).json(savedTask);
   } catch (err) {
     console.error("Error creating task:", err);
     res.status(400).json({
-      message: "Invalid data.Could not create task."
+      message: "Invalid data. Could not create task."
     });
   }
 });
 
 // Update task status
 app.patch("/tasks/:id", async (req, res) => {
-  const{status} = req.body;
+  const { status } = req.body;
+
   try {
     const updatedTask = await Task.findByIdAndUpdate(
       req.params.id,
-      { status},
-      { new: true }
+      { status },
+      { new: true, runValidators: true }
     );
 
     if (!updatedTask) {
-      return res.status(404).json({
-        message: "Task not found."
-      });
+      return res.status(404).json({ message: "Task not found." });
     }
 
     res.json(updatedTask);
   } catch (err) {
     console.error("Error updating task status:", err);
     res.status(500).json({
-      message: "Server error.Could not update task status."
+      message: "Could not update task status."
     });
   }
 });
@@ -85,31 +125,24 @@ app.patch("/tasks/:id", async (req, res) => {
 // Delete a task
 app.delete("/tasks/:id", async (req, res) => {
   try {
-    const deletedTask = await Task.findByIdAndDelete(
-      req.params.id
-    );
+    const deletedTask = await Task.findByIdAndDelete(req.params.id);
 
     if (!deletedTask) {
-      return res.status(404).json({
-        message: "Task not found."
-      });
+      return res.status(404).json({ message: "Task not found." });
     }
 
     res.json({ message: "Task deleted successfully." });
   } catch (err) {
     console.error("Error deleting task:", err);
     res.status(500).json({
-      message: "Server error.Could not delete task."
+      message: "Could not delete task."
     });
   }
 });
 
-// Connect to MongoDB and start server
+// Start server
 const PORT = process.env.PORT || 5000;
 
-app.get("/", (req, res) => {
-  res.send("Task Management API is running!");
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on port ${PORT}`);
 });
-    app.listen(PORT,"0.0.0.0", () => {
-      console.log("Server running on port" +PORT);
-    });
